@@ -111,7 +111,35 @@ func (server *LunarServer) rightsMutate(next http.HandlerFunc) http.HandlerFunc 
 		spl := strings.Split(r.URL.Path, "/")
 		extras := map[string]*aPb.OptExtras{}
 		req := &aPb.AuthOpt{}
-		if spl[3] == "roles" {
+
+		if spl[3] == "topology" {
+			data := &model.TMutateRequest{}
+			if err := json.Unmarshal(body, data); err != nil {
+				span.AddLog(&stellar.KV{"Could not decode the request body as JSON", err.Error()})
+				sendErrorMessage(w, "Could not decode the request body as JSON", http.StatusBadRequest)
+				return
+			}
+
+			l := []string{}
+			for lk, lv := range data.Payload.Labels {
+				l = append(l, strings.Join([]string{lk, lv}, ":"))
+			}
+			extras["labels"] = &aPb.OptExtras{Data: l}
+			extras["name"] = &aPb.OptExtras{Data: []string{data.Payload.Name}}
+
+			req.Data = map[string]string{
+				"intent":       "auth",
+				"action":       spl[4],
+				"kind":         spl[3],
+				"user":         r.URL.Query()["user"][0],
+				"token":        r.Header["Authorization"][0],
+				"namespace":    data.MTData.Namespace,
+				"queue":        data.MTData.Queue,
+				"forceNSQueue": strconv.FormatBool(data.MTData.ForceNSQueue),
+			}
+			req.Extras = extras
+
+		} else if spl[3] == "roles" {
 			data := &model.RMutateRequest{}
 			if err := json.Unmarshal(body, data); err != nil {
 				span.AddLog(&stellar.KV{"Could not decode the request body as JSON", err.Error()})
@@ -213,7 +241,7 @@ func (server *LunarServer) rightsMutate(next http.HandlerFunc) http.HandlerFunc 
 		resp, err := client.Auth(ctx, req)
 		if err != nil {
 			span.AddLog(&stellar.KV{"apollo.auth error", err.Error()})
-			sendErrorMessage(w, "Error from Apollo Service!", http.StatusBadRequest)
+			sendErrorMessage(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 

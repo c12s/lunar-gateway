@@ -50,6 +50,8 @@ func (server *LunarServer) setupEndpoints() {
 	server.setupAuth()
 	server.setupTrace()
 	server.setupRoles()
+	server.setupTopology()
+	server.setupNodes()
 }
 
 func (server *LunarServer) Start() {

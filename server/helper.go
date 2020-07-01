@@ -5,6 +5,7 @@ import (
 	"github.com/c12s/lunar-gateway/model"
 	bPb "github.com/c12s/scheme/blackhole"
 	cPb "github.com/c12s/scheme/celestial"
+	mPb "github.com/c12s/scheme/magnetar"
 	sPb "github.com/c12s/scheme/stellar"
 	// "io"
 	"context"
@@ -129,6 +130,8 @@ func tKind(kind string) bPb.TaskKind {
 		return bPb.TaskKind_NAMESPACES
 	case Roles:
 		return bPb.TaskKind_ROLES
+	case Topology:
+		return bPb.TaskKind_TOPOLOGY
 	default:
 		return -1
 	}
@@ -240,6 +243,71 @@ func rolesToProto(data *model.RMutateRequest) *bPb.PutReq {
 	}
 }
 
+func topologyToProto(data *model.TMutateRequest) *bPb.PutReq {
+	extras := map[string]string{}
+	extras["user"] = data.Request
+	extras["name"] = data.Payload.Name
+
+	tasks := []*bPb.PutTask{}
+	for _, region := range data.Payload.Regions {
+		for _, cluster := range region.Clusters {
+			payload := []*bPb.Payload{}
+			for _, node := range cluster.Nodes {
+				values := map[string]string{
+					"ID":        node.ID,
+					"NAME":      node.Name,
+					"RETENTION": cluster.Retention,
+				}
+				for k, v := range node.Labels {
+					values[k] = v
+				}
+				payload = append(payload, &bPb.Payload{
+					Value: values,
+				})
+			}
+			tasks = append(tasks, &bPb.PutTask{
+				RegionId:  region.ID,
+				ClusterId: cluster.ID,
+				Selector: &bPb.Selector{
+					Labels: data.Payload.Labels,
+				},
+				Strategy: &bPb.Strategy{
+					Type: bPb.StrategyKind_AT_ONCE,
+					Kind: "all",
+				},
+				Payload: payload,
+			})
+		}
+	}
+
+	return &bPb.PutReq{
+		Version: data.Version,
+		UserId:  data.Request,
+		Kind:    tKind(data.Kind),
+		Mtdata: &bPb.Metadata{
+			TaskName:            data.MTData.TaskName,
+			Timestamp:           data.MTData.Timestamp,
+			Namespace:           data.MTData.Namespace,
+			ForceNamespaceQueue: data.MTData.ForceNSQueue,
+			Queue:               data.MTData.Queue,
+		},
+		Extras: extras,
+		Tasks:  tasks,
+	}
+}
+
+func protoToNodesListResp(data *mPb.ListRsp) *model.NodesResponse {
+	rez := &model.NodesResponse{Data: []model.LNode{}}
+	for k, val := range data.Data {
+		node := model.LNode{
+			ID:     k,
+			Labels: val.Data,
+		}
+		rez.Data = append(rez.Data, node)
+	}
+	return rez
+}
+
 func listToProto(data map[string][]string, kind cPb.ReqKind) *cPb.ListReq {
 	extras := map[string]string{}
 	for k, v := range data {
@@ -253,6 +321,21 @@ func listToProto(data map[string][]string, kind cPb.ReqKind) *cPb.ListReq {
 	return &cPb.ListReq{
 		Extras: extras,
 		Kind:   kind,
+	}
+}
+
+func listNodesToProto(data map[string][]string) *mPb.DataMsg {
+	extras := map[string]string{}
+	for k, v := range data {
+		if k == labels {
+			sort.Strings(v)
+			extras[k] = strings.Join(v, ",")
+		} else {
+			extras[k] = v[0]
+		}
+	}
+	return &mPb.DataMsg{
+		Data: extras,
 	}
 }
 

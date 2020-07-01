@@ -6,6 +6,7 @@ const (
 	APOLLO    = "apollo"
 	STELLAR   = "stellar"
 	MERIDIAN  = "meridian"
+	MAGNETAR  = "magnetar"
 
 	all = "all"
 	any = "any"
@@ -36,4 +37,5 @@ const (
 	Actions    = "Actions"
 	Namespaces = "Namespaces"
 	Roles      = "Roles"
+	Topology   = "Topology"
 )

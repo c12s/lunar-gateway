@@ -4,6 +4,7 @@ import (
 	aPb "github.com/c12s/scheme/apollo"
 	bPb "github.com/c12s/scheme/blackhole"
 	cPb "github.com/c12s/scheme/celestial"
+	rPb "github.com/c12s/scheme/magnetar"
 	mPb "github.com/c12s/scheme/meridian"
 	sPb "github.com/c12s/scheme/stellar"
 	"google.golang.org/grpc"
@@ -48,4 +49,12 @@ func NewMeridianClient(address string) mPb.MeridianServiceClient {
 		log.Fatalf("Failed to start gRPC connection to apollo service: %v", err)
 	}
 	return mPb.NewMeridianServiceClient(conn)
+}
+
+func NewMagnetarClient(address string) rPb.MagnetarServiceClient {
+	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	if err != nil {
+		log.Fatalf("Failed to start gRPC connection to apollo service: %v", err)
+	}
+	return rPb.NewMagnetarServiceClient(conn)
 }
