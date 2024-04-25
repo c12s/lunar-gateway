@@ -4,6 +4,7 @@ gateway:
 services:
   Magnetar: magnetar:5000
   AuthService: iam-service:8002
+  RateLimiter: rate_limiter_service:8080
 groups:
   core:
     v1:
@@ -23,4 +24,20 @@ groups:
         method_route: /nodes/available/query_match
         type: GET
         service: Magnetar
+      CreateRateLimiter:
+        method_route: /rate-limiter
+        type: POST
+        service: RateLimiter
+      #UpdateRateLimiter:
+        #method_route: /rate-limiter/
+        #type: PUT
+        #service: RateLimiter
+      #DeleteRateLimiter:
+        #method_route: /rate-limiter/
+        #type: DELETE
+        #service: RateLimiter
+      #CanRateLimiterAllowRequest:
+        #method_route: /rate-limiter/allow
+        #type: GET
+        #service: RateLimiter
       

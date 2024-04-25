@@ -7,12 +7,14 @@ COPY ./lunar-gateway/go.mod ./lunar-gateway/go.sum ./
 COPY ./oort ../oort
 COPY ./magnetar ../magnetar
 COPY ./iam-service ../iam-service
+COPY ./heliosphere ../heliosphere
 
 RUN go mod download
 
 COPY ./oort ../oort
 COPY ./magnetar ../magnetar
 COPY ./iam-service ../iam-service
+COPY ./heliosphere ../heliosphere
 
 COPY ./lunar-gateway .
 
@@ -27,5 +29,8 @@ COPY --from=builder /app/config/config.yml /root/
 COPY --from=builder /app/config/no_auth_config.yml /root/
 
 EXPOSE 5555
+
+# za ukljucivanje sistemskog rl
+#CMD ["./main", "sysrl"]
 
 CMD ["./main"]

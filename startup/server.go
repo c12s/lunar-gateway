@@ -7,20 +7,23 @@ import (
 	"gateway/config"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 )
 
 type Server struct {
-	config *config.Config
-	noAuthConfig *config.Config
-	noAuthMethods []string
+	config         *config.Config
+	noAuthConfig   *config.Config
+	noAuthMethods  []string
+	useRateLimiter bool
 }
 
-func NewServer(config *config.Config, noAuthConfig *config.Config) *Server {
+func NewServer(config *config.Config, noAuthConfig *config.Config, useRateLimiter bool) *Server {
 	return &Server{config: config,
-	noAuthConfig: noAuthConfig,
-	noAuthMethods: nil}
+		noAuthConfig:   noAuthConfig,
+		noAuthMethods:  nil,
+		useRateLimiter: useRateLimiter}
 }
 
 func (s *Server) Start() {
@@ -38,6 +41,13 @@ func (s *Server) prepareClients() *client.ClientRegistry {
 
 	for k, v := range s.config.Services {
 		clientRegistry.NewClient(k, v)
+	}
+
+	for k, v := range s.noAuthConfig.Services {
+		_, ok := clientRegistry.Clients[k]
+		if !ok {
+			clientRegistry.NewClient(k, v)
+		}
 	}
 
 	return clientRegistry
@@ -62,6 +72,7 @@ func (s *Server) prepareRoutes(clientRegistry *client.ClientRegistry) *mux.Route
 
 func (s *Server) methodInterceptor(mtdName string, client client.Client) http.HandlerFunc {
 	var h http.HandlerFunc
+
 	if isNoAuthMethod(mtdName, s.noAuthMethods) {
 		h = client.InvokeGrpcMethod
 	} else {
@@ -70,15 +81,27 @@ func (s *Server) methodInterceptor(mtdName string, client client.Client) http.Ha
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), "mtdName", mtdName)
-		h.ServeHTTP(w, r.WithContext(ctx))
+
+		if s.useRateLimiter {
+			systemAllowed := client.WithSystemRateLimiter(w, r)
+			if systemAllowed {
+				h.ServeHTTP(w, r.WithContext(ctx))
+			} else {
+				http.Error(w, os.Getenv("rl.system.message"), http.StatusBadRequest)
+				return
+			}
+		} else {
+			h.ServeHTTP(w, r.WithContext(ctx))
+		}
+
 	})
 }
 
 func getNoAuthMethods(noAuthMap map[string]config.MethodConfig) []string {
 	keys := make([]string, 0, len(noAuthMap))
-    for key := range noAuthMap {
-        keys = append(keys, key)
-    }
+	for key := range noAuthMap {
+		keys = append(keys, key)
+	}
 	return keys
 }
 
