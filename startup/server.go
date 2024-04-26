@@ -43,13 +43,6 @@ func (s *Server) prepareClients() *client.ClientRegistry {
 		clientRegistry.NewClient(k, v)
 	}
 
-	for k, v := range s.noAuthConfig.Services {
-		_, ok := clientRegistry.Clients[k]
-		if !ok {
-			clientRegistry.NewClient(k, v)
-		}
-	}
-
 	return clientRegistry
 }
 func (s *Server) prepareRoutes(clientRegistry *client.ClientRegistry) *mux.Router {
@@ -84,15 +77,13 @@ func (s *Server) methodInterceptor(mtdName string, client client.Client) http.Ha
 
 		if s.useRateLimiter {
 			systemAllowed := client.WithSystemRateLimiter(w, r)
-			if systemAllowed {
-				h.ServeHTTP(w, r.WithContext(ctx))
-			} else {
+			if !systemAllowed {
 				http.Error(w, os.Getenv("rl.system.message"), http.StatusBadRequest)
 				return
 			}
-		} else {
-			h.ServeHTTP(w, r.WithContext(ctx))
 		}
+
+		h.ServeHTTP(w, r.WithContext(ctx))
 
 	})
 }

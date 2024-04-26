@@ -3,7 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
-	iam "iam-service/proto1"
+	iam "apollo/proto1"
 	"log"
 
 	"google.golang.org/grpc"
@@ -11,7 +11,7 @@ import (
 )
 
 func InterceptRequest(vault_token string) (string, string, error) {
-	conn, err := grpc.Dial("iam-service:8002", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial("apollo:8002", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
 	}
