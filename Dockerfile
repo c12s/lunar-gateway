@@ -6,14 +6,14 @@ COPY ./lunar-gateway/go.mod ./lunar-gateway/go.sum ./
 
 COPY ./oort ../oort
 COPY ./magnetar ../magnetar
-COPY ./iam-service ../iam-service
+COPY ./apollo ../apollo
 COPY ./heliosphere ../heliosphere
 
 RUN go mod download
 
 COPY ./oort ../oort
 COPY ./magnetar ../magnetar
-COPY ./iam-service ../iam-service
+COPY ./apollo ../apollo
 COPY ./heliosphere ../heliosphere
 
 COPY ./lunar-gateway .

@@ -4,9 +4,10 @@ gateway:
 services:
   Magnetar: magnetar:5000
   Kuiper: kuiper:9001
-  AuthService: iam-service:8002
+  AuthService: apollo:8002
   OortAdministrator: oort:8000
   ConfigSchemaService: quasar:9090
+  RateLimitService: rate_limiter_service:8080
 groups:
   core:
     v1:
@@ -138,3 +139,7 @@ groups:
         method_route: /schemas/versions
         type: GET
         service: ConfigSchemaService
+      CreateRateLimiter:
+        method_route: /rate-limiter
+        type: POST
+        service: RateLimitService

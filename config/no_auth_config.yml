@@ -3,8 +3,8 @@ gateway:
   port: 5555
 services:
   Magnetar: magnetar:5000
-  AuthService: iam-service:8002
-  RateLimiter: rate_limiter_service:8080
+  AuthService: apollo:8002
+  RateLimitService: rate_limiter_service:8080
 groups:
   core:
     v1:
@@ -27,7 +27,7 @@ groups:
       CreateRateLimiter:
         method_route: /rate-limiter
         type: POST
-        service: RateLimiter
+        service: RateLimitService
       #UpdateRateLimiter:
         #method_route: /rate-limiter/
         #type: PUT
