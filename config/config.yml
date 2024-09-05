@@ -3,6 +3,7 @@ gateway:
   port: 5555
 services:
   Magnetar: magnetar:5000
+  Meridian: meridian:8000
   Kuiper: kuiper:9001
   AuthService: apollo:8002
   OortAdministrator: oort:8000
@@ -143,3 +144,35 @@ groups:
         method_route: /rate-limiter
         type: POST
         service: RateLimitService
+      AddNamespace:
+        method_route: /namespaces
+        type: POST
+        service: Meridian
+      RemoveNamespace:
+        method_route: /namespaces
+        type: DELETE
+        service: Meridian
+      AddApp:
+        method_route: /apps
+        type: POST
+        service: Meridian
+      RemoveApp:
+        method_route: /apps
+        type: DELETE
+        service: Meridian
+      GetNamespace:
+        method_route: /namespaces
+        type: GET
+        service: Meridian
+      GetNamespaceHierarchy:
+        method_route: /namespace_hierarchies
+        type: GET
+        service: Meridian
+      SetNamespaceResources:
+        method_route: /namespace_quotas
+        type: POST
+        service: Meridian
+      SetAppResources:
+        method_route: /app_quotas
+        type: POST
+        service: Meridian
