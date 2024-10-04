@@ -29,10 +29,10 @@ groups:
         method_route: /rate-limiter
         type: POST
         service: RateLimitService
-      #UpdateRateLimiter:
-        #method_route: /rate-limiter/
-        #type: PUT
-        #service: RateLimiter
+      GetAllRateLimiters:
+        method_route: /rate-limiter
+        type: GET
+        service: RateLimitService
       #DeleteRateLimiter:
         #method_route: /rate-limiter/
         #type: DELETE
@@ -41,4 +41,3 @@ groups:
         #method_route: /rate-limiter/allow
         #type: GET
         #service: RateLimiter
-      
