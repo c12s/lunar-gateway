@@ -176,3 +176,7 @@ groups:
         method_route: /app_quotas
         type: POST
         service: Meridian
+      GetAllRateLimiters:
+        method_route: /rate-limiter
+        type: GET
+        service: RateLimitService

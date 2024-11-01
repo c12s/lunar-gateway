@@ -29,42 +29,10 @@ groups:
         method_route: /rate-limiter
         type: POST
         service: RateLimitService
-      AddNamespace:
-        method_route: /namespaces
-        type: POST
-        service: Meridian
-      RemoveNamespace:
-        method_route: /namespaces
-        type: DELETE
-        service: Meridian
-      AddApp:
-        method_route: /apps
-        type: POST
-        service: Meridian
-      RemoveApp:
-        method_route: /apps
-        type: DELETE
-        service: Meridian
-      GetNamespace:
-        method_route: /namespaces
+      GetAllRateLimiters:
+        method_route: /rate-limiter
         type: GET
-        service: Meridian
-      GetNamespaceHierarchy:
-        method_route: /namespace_hierarchies
-        type: GET
-        service: Meridian
-      SetNamespaceResources:
-        method_route: /namespace_quotas
-        type: POST
-        service: Meridian
-      SetAppResources:
-        method_route: /app_quotas
-        type: POST
-        service: Meridian
-      #UpdateRateLimiter:
-        #method_route: /rate-limiter/
-        #type: PUT
-        #service: RateLimiter
+        service: RateLimitService
       #DeleteRateLimiter:
         #method_route: /rate-limiter/
         #type: DELETE
@@ -73,4 +41,3 @@ groups:
         #method_route: /rate-limiter/allow
         #type: GET
         #service: RateLimiter
-      

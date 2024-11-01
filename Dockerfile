@@ -11,11 +11,6 @@ COPY ./heliosphere ../heliosphere
 
 RUN go mod download
 
-COPY ./oort ../oort
-COPY ./magnetar ../magnetar
-COPY ./apollo ../apollo
-COPY ./heliosphere ../heliosphere
-
 COPY ./lunar-gateway .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
