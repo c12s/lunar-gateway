@@ -6,9 +6,58 @@ services:
   Meridian: meridian:8000
   AuthService: apollo:8002
   RateLimitService: rate_limiter_service:8080
+  Starmap: starmap:9002
 groups:
   core:
     v1:
+      PutChart:
+        method_route: /chart
+        type: POST
+        service: Starmap
+      GetCharts:
+        method_route: /charts
+        type: GET
+        service: Starmap 
+      GetChartMetadata:
+        method_route: /chart/metadata
+        type: GET
+        service: Starmap   
+      GetChartsLabels:
+        method_route: /charts/labels
+        type: GET
+        service: Starmap
+      GetChartId:
+        method_route: /chart/id
+        type: GET
+        service: Starmap
+      GetMissingLayers:
+        method_route: /missing_layers
+        type: GET
+        service: Starmap
+      DeleteChart:
+        method_route: /chart
+        type: DELETE
+        service: Starmap
+      UpdateChart:
+        method_route: /chart
+        type: PATCH
+        service: Starmap
+      SwitchCheckpoint:
+        method_route: /switch_checkpoint
+        type: POST
+        service: Starmap
+      Timeline:
+        method_route: /timeline
+        type: GET
+        service: Starmap
+      Extend:
+        method_route: /extend
+        type: POST
+        service: Starmap      
+      Search:
+        method_route: /search
+        type: GET
+        service: Starmap    
       RegisterUser:
         method_route: /user
         type: POST
