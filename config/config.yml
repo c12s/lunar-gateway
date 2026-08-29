@@ -9,6 +9,7 @@ services:
   OortAdministrator: oort:8000
   ConfigSchemaService: quasar:9090
   RateLimitService: rate_limiter_service:8080
+  Gravity: agent_queue:50052
 groups:
   core:
     v1:
@@ -120,6 +121,10 @@ groups:
         method_route: /configs/groups/diff
         type: GET
         service: Kuiper
+      DisseminateOSImage:
+        method_route: /images/update
+        type: POST
+        service: Gravity
       SaveConfigSchema:
         method_route: /schemas
         type: POST
