@@ -125,6 +125,18 @@ groups:
         method_route: /images/update
         type: POST
         service: Gravity
+      SetDesiredVms:
+        method_route: /vms
+        type: POST
+        service: Magnetar
+      GetDesiredVms:
+        method_route: /vms/desired
+        type: GET
+        service: Magnetar
+      GetVmStatuses:
+        method_route: /vms/status
+        type: GET
+        service: Magnetar
       SaveConfigSchema:
         method_route: /schemas
         type: POST
