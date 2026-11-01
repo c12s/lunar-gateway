@@ -8,8 +8,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gorilla/mux"
+)
+
+const (
+	defaultStartupTimeout = 5 * time.Minute
+	startupRetryInterval  = 3 * time.Second
 )
 
 type Server struct {
@@ -39,11 +45,47 @@ func (s *Server) prepareClients() *client.ClientRegistry {
 		Clients: make(map[string]client.Client),
 	}
 
+	deadline := time.Now().Add(startupTimeout())
 	for k, v := range s.config.Services {
-		clientRegistry.NewClient(k, v)
+		if err := waitForClient(clientRegistry, k, v, deadline); err != nil {
+			log.Fatalf("gateway startup failed: %v", err)
+		}
 	}
 
 	return clientRegistry
+}
+
+// waitForClient retries a backend until it is reachable and reflects at least
+// one service. Docker starts containers in arbitrary order after a daemon or
+// host restart, so the gateway must not assume its dependencies are ready.
+func waitForClient(registry *client.ClientRegistry, name, address string, deadline time.Time) error {
+	var lastErr error
+	for {
+		err := registry.NewClient(name, address)
+		if err == nil {
+			return nil
+		}
+		lastErr = err
+
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timed out waiting for %s at %s: %w", name, address, lastErr)
+		}
+		log.Printf("waiting for %s at %s (%v); retrying in %s", name, address, lastErr, startupRetryInterval)
+		time.Sleep(startupRetryInterval)
+	}
+}
+
+func startupTimeout() time.Duration {
+	raw := os.Getenv("GATEWAY_STARTUP_TIMEOUT")
+	if raw == "" {
+		return defaultStartupTimeout
+	}
+	timeout, err := time.ParseDuration(raw)
+	if err != nil || timeout <= 0 {
+		log.Printf("invalid GATEWAY_STARTUP_TIMEOUT=%q; using %s", raw, defaultStartupTimeout)
+		return defaultStartupTimeout
+	}
+	return timeout
 }
 func (s *Server) prepareRoutes(clientRegistry *client.ClientRegistry) *mux.Router {
 	router := mux.NewRouter().PathPrefix(s.config.Gateway.Route).Subrouter()

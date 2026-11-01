@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -16,24 +17,40 @@ type ClientRegistry struct {
 	Clients map[string]Client
 }
 
-func (registry *ClientRegistry) NewClient(name, address string) {
-	log.Printf("New client %s address %s /n", name, address)
+// NewClient dials a backend, discovers its reflected services and registers a
+// client for it. It returns an error instead of panicking so the gateway can
+// retry during startup: Docker may start the gateway before its dependencies
+// are ready after a host reboot.
+func (registry *ClientRegistry) NewClient(name, address string) error {
+	log.Printf("New client %s address %s", name, address)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	var cc *grpc.ClientConn
-	var err error
 	defer cancel()
-	if cc, err = grpc.DialContext(ctx, address,
-		grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock()); err != nil {
-		panic(err)
+
+	cc, err := grpc.DialContext(ctx, address,
+		grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	if err != nil {
+		return fmt.Errorf("dial %s (%s): %w", name, address, err)
 	}
+
 	refClient := grpcreflect.NewClientAuto(context.Background(), cc)
 	descSource := grpcurl.DescriptorSourceFromServer(context.Background(), refClient)
-	services, _ := descSource.ListServices()
-	filteredServices := make([]string, 0)
+	services, err := descSource.ListServices()
+	if err != nil {
+		cc.Close()
+		return fmt.Errorf("list services for %s (%s): %w", name, address, err)
+	}
+
+	filteredServices := make([]string, 0, len(services))
 	for _, str := range services {
 		if !strings.HasPrefix(str, "grpc.") {
 			filteredServices = append(filteredServices, str)
 		}
 	}
+	if len(filteredServices) == 0 {
+		cc.Close()
+		return fmt.Errorf("service %s (%s) exposes no non-grpc.* services", name, address)
+	}
+
 	registry.Clients[name] = Client{refClient: refClient, cc: cc, descSource: descSource, grpcServiceName: filteredServices[0]}
+	return nil
 }
