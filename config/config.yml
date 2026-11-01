@@ -41,6 +41,10 @@ groups:
         method_route: /nodes
         type: PATCH
         service: Magnetar
+      DeleteNode:
+        method_route: /nodes
+        type: DELETE
+        service: Magnetar
       PutFloat64Label:
         method_route: /labels/float64
         type: POST
