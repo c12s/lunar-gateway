@@ -3,8 +3,8 @@
 The single HTTP entry point to the control plane. Every `cockpit` command and
 every operator HTTP call lands here; the gateway translates it into a gRPC
 call to the owning service (Magnetar, Gravity, Kuiper, Quasar, Apollo, Oort,
-Meridian) using **server reflection** — there is no hand-written per-method
-proxying code. Routes are declared in config.
+Meridian, Supernova) using **server reflection** — there is no hand-written
+per-method proxying code. Routes are declared in config.
 
 ## Role in c12s
 
@@ -30,8 +30,10 @@ cockpit / curl ──HTTP──▶ lunar-gateway (:5555) ──gRPC──▶ Mag
    invalid token → `401`.
 2. The token is verified with Apollo (`VerifyToken`); the returned JWT is
    forwarded to the target service as gRPC metadata `authz-token`.
-3. Services (Magnetar, Gravity) enforce their own `permissions` claim checks —
-   the gateway is not the authorization point.
+3. Services (Magnetar, Gravity, Kuiper, Supernova) enforce their own
+   `permissions` claim checks — the gateway is not the authorization point.
+   Supernova checks `image.build|image|<repo path>`; the other services check
+   their node/config permissions the same way.
 
 ## Rate limiting
 
@@ -50,7 +52,7 @@ A second, system-wide limiter can be enabled by starting the binary with the
 
 | File | Purpose |
 |---|---|
-| `config/config.yml` | services (host:port) + route table (46 routes today) |
+| `config/config.yml` | services (host:port) + route table (51 routes today) |
 | `config/no_auth_config.yml` | routes exempt from authentication |
 | `.env` (compose) | gateway port for the container |
 | `GATEWAY_STARTUP_TIMEOUT` | how long startup retries each backend (default `5m`) |
@@ -87,6 +89,16 @@ lab exposes `localhost:5555`.
 Stable and load-bearing: every cockpit call and all operator HTTP traffic
 passes through it. The route table is hand-maintained; only routes present
 in `config/config.yml` are reachable.
+
+### Build routes (Supernova)
+
+`BuildImage`, `BuildQCOW2`, `GetJob` and `ListJobs` are ordinary gRPC routes —
+Supernova speaks gRPC and registers reflection, so no passthrough handler is
+needed. `BuildImage` carries the build context as base64 in the JSON body
+(the proto `bytes` field); the gateway's gRPC client and Supernova's server
+both raise the message limit to 64 MiB (`client/client_registry.go`,
+`supernova/cmd/supernova/main.go`). The routes require a token and are not in
+`no_auth_config.yml`; Supernova enforces `image.build|image|<name>`.
 
 ## Bugs, disabled and unfinished features
 
