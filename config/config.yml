@@ -221,3 +221,7 @@ groups:
         method_route: /builds
         type: GET
         service: Supernova
+      ListImages:
+        method_route: /images
+        type: GET
+        service: Supernova
