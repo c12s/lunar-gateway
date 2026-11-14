@@ -40,10 +40,13 @@ cockpit / curl ──HTTP──▶ lunar-gateway (:5555) ──gRPC──▶ Mag
 Every **authenticated** request consults `rate_limiter_service`
 (heliosphere, Consul-backed) before being forwarded, keyed
 `<methodName>-<username>`. If no limiter is configured for that key, a
-**default is auto-created: token bucket, burst 1, 1 request/second**. Scripts
-that fire several requests at one endpoint in quick succession will get
-`User reached rate limit per request.` — space calls, or create a custom
-limiter for the user/method (`/rate-limiter` no-auth routes).
+default token bucket is auto-created with heliosphere's
+`RL_DEFAULT_REQ_PER_SEC` / `RL_DEFAULT_BURST` (1/1 when unset; the lab sets
+10/20 in `tools/.env`). Over the limit the reply is `User reached rate limit
+per request.` Limiters already stored in Consul keep their old values; delete
+them (`consul kv delete -recurse rateLimiters/`) after raising the default,
+or create a custom limiter for the user/method (`/rate-limiter` no-auth
+routes).
 
 A second, system-wide limiter can be enabled by starting the binary with the
 `sysrl` argument (disabled in the compose deployment; see `Dockerfile`).
@@ -52,7 +55,7 @@ A second, system-wide limiter can be enabled by starting the binary with the
 
 | File | Purpose |
 |---|---|
-| `config/config.yml` | services (host:port) + route table (51 routes today) |
+| `config/config.yml` | services (host:port) + route table (52 routes today) |
 | `config/no_auth_config.yml` | routes exempt from authentication |
 | `.env` (compose) | gateway port for the container |
 | `GATEWAY_STARTUP_TIMEOUT` | how long startup retries each backend (default `5m`) |
@@ -92,7 +95,9 @@ in `config/config.yml` are reachable.
 
 ### Build routes (Supernova)
 
-`BuildImage`, `BuildQCOW2`, `GetJob` and `ListJobs` are ordinary gRPC routes —
+`BuildImage`, `BuildQCOW2`, `GetJob`, `ListJobs` and `ListImages` (`GET
+/images`: registry tags with digests and qcow2 artifacts, for `cockpit image
+list`) are ordinary gRPC routes —
 Supernova speaks gRPC and registers reflection, so no passthrough handler is
 needed. `BuildImage` carries the build context as base64 in the JSON body
 (the proto `bytes` field); the gateway's gRPC client and Supernova's server
