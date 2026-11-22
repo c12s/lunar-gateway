@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/fullstorydev/grpcurl"
 	"github.com/goccy/go-json"
@@ -26,13 +27,14 @@ type Client struct {
 
 func (client *Client) WrapGrpcMethod(writer http.ResponseWriter, req *http.Request) {
 	token := req.Header.Get("Authorization")
+	token = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(token), "Bearer "))
 
-	if token == "" || len(token) <= 8 {
+	if token == "" {
 		http.Error(writer, "Invalid token", http.StatusUnauthorized)
 		return
 	}
 
-	response, username, err := InterceptRequest(token[7:])
+	response, username, err := InterceptRequest(token)
 	if err != nil {
 		http.Error(writer, "Invalid token", http.StatusUnauthorized)
 		return
@@ -40,12 +42,12 @@ func (client *Client) WrapGrpcMethod(writer http.ResponseWriter, req *http.Reque
 
 	rl_response, err := CallRateLimiter(username, req.Context().Value("mtdName").(string))
 
-	/*if err != nil {
+	if err != nil {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
-	}*/
+	}
 
-	if !rl_response && err == nil {
+	if !rl_response {
 		http.Error(writer, os.Getenv("rl.user.message"), http.StatusBadRequest)
 		return
 	}

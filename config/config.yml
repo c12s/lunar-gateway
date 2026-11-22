@@ -9,6 +9,8 @@ services:
   OortAdministrator: oort:8000
   ConfigSchemaService: quasar:9090
   RateLimitService: rate_limiter_service:8080
+  Gravity: agent_queue:50052
+  Supernova: supernova:8090
 groups:
   core:
     v1:
@@ -39,6 +41,10 @@ groups:
       ClaimOwnership:
         method_route: /nodes
         type: PATCH
+        service: Magnetar
+      DeleteNode:
+        method_route: /nodes
+        type: DELETE
         service: Magnetar
       PutFloat64Label:
         method_route: /labels/float64
@@ -120,6 +126,22 @@ groups:
         method_route: /configs/groups/diff
         type: GET
         service: Kuiper
+      DisseminateOSImage:
+        method_route: /images/update
+        type: POST
+        service: Gravity
+      SetDesiredVms:
+        method_route: /vms
+        type: POST
+        service: Magnetar
+      GetDesiredVms:
+        method_route: /vms/desired
+        type: GET
+        service: Magnetar
+      GetVmStatuses:
+        method_route: /vms/status
+        type: GET
+        service: Magnetar
       SaveConfigSchema:
         method_route: /schemas
         type: POST
@@ -180,3 +202,26 @@ groups:
         method_route: /rate-limiter
         type: GET
         service: RateLimitService
+      # Supernova build service. BuildImage carries the tar.gz context in the
+      # JSON body as base64 (grpcurl parses the proto bytes field); the server
+      # and this client both raise the gRPC message limit to 64 MiB.
+      BuildImage:
+        method_route: /builds
+        type: POST
+        service: Supernova
+      BuildQCOW2:
+        method_route: /builds/qcow2
+        type: POST
+        service: Supernova
+      GetJob:
+        method_route: /builds/{id}
+        type: GET
+        service: Supernova
+      ListJobs:
+        method_route: /builds
+        type: GET
+        service: Supernova
+      ListImages:
+        method_route: /images
+        type: GET
+        service: Supernova

@@ -25,7 +25,7 @@ func main() {
 
 	args := os.Args
 	useRateLimiter := false
-	if len(args) > 1 && args[0] == "sysrl" {
+	if len(args) > 1 && args[1] == "sysrl" {
 		useRateLimiter = true
 	}
 
