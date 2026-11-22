@@ -41,7 +41,7 @@ Every **authenticated** request consults `rate_limiter_service`
 (heliosphere, Consul-backed) before being forwarded, keyed
 `<methodName>-<username>`. If no limiter is configured for that key, a
 default token bucket is auto-created with heliosphere's
-`RL_DEFAULT_REQ_PER_SEC` / `RL_DEFAULT_BURST` (1/1 when unset; the lab sets
+`RL_DEFAULT_REQ_PER_SEC` / `RL_DEFAULT_BURST` (1/1 when unset; the compose stack sets
 10/20 in `tools/.env`). Over the limit the reply is `User reached rate limit
 per request.` Limiters already stored in Consul keep their old values; delete
 them (`consul kv delete -recurse rateLimiters/`) after raising the default,
@@ -77,57 +77,12 @@ exceeded` and a gateway crash loop. The retry loop replaces that behavior;
 ## Build, run
 
 ```bash
-go build ./...       # no tests exist (see bugs)
+go build ./...       # no tests exist
 go run .             # needs config.yml + no_auth_config.yml in CWD
                      # and the target services reachable at compose hostnames
 ```
 
 The Dockerfile builds from the **workspace root** context (it copies
 `oort/`, `magnetar/`, `apollo/`, `heliosphere/` next to the gateway) and runs
-`./main` on port 5555. In compose it is the `lunar-gateway` container; the
-lab exposes `localhost:5555`.
-
-## Status
-
-Stable and load-bearing: every cockpit call and all operator HTTP traffic
-passes through it. The route table is hand-maintained; only routes present
-in `config/config.yml` are reachable.
-
-### Build routes (Supernova)
-
-`BuildImage`, `BuildQCOW2`, `GetJob`, `ListJobs` and `ListImages` (`GET
-/images`: registry tags with digests and qcow2 artifacts, for `cockpit image
-list`) are ordinary gRPC routes —
-Supernova speaks gRPC and registers reflection, so no passthrough handler is
-needed. `BuildImage` carries the build context as base64 in the JSON body
-(the proto `bytes` field); the gateway's gRPC client and Supernova's server
-both raise the message limit to 64 MiB (`client/client_registry.go`,
-`supernova/cmd/supernova/main.go`). The routes require a token and are not in
-`no_auth_config.yml`; Supernova enforces `image.build|image|<name>`.
-
-## Bugs, disabled and unfinished features
-
-### Confirmed bugs
-
-| Where | Effect |
-|---|---|
-| `client/client_interceptor.go`, `client/client_rate_limiter.go` | A **new gRPC connection to Apollo and to the rate limiter is dialed on every request** (no connection reuse, no keepalive). Works, but adds latency and file-descriptor churn under load. |
-| `client/client_interceptor.go` | Apollo's address is hardcoded `apollo:8002` (and the rate limiter's `rate_limiter_service:8080`); the gateway cannot run outside the compose network without code changes. |
-| `Dockerfile` comment | The `sysrl` system-wide limiter exists but is commented out/disabled in the image (deliberate, but undocumented in code paths). |
-
-### Disabled / unfinished features
-
-- **No tests at all** (`go test ./...` → no test files) for routing, auth
-  forwarding, or rate-limit behavior.
-- Some route definitions are commented out (`DeleteRateLimiter`,
-  `CanRateLimiterAllowRequest`) — those operations are reachable only
-  internally.
-- GET-with-body clients (`cockpit image status`, `vms list/status`) work only
-  because this gateway forwards GET bodies; stricter proxies in front of it
-  would break them (review BUG-3).
-
-### PoC boundaries (by design, not bugs)
-
-- Plain HTTP + plaintext gRPC internally; no TLS anywhere in the lab.
-- Authorization is enforced by downstream services; hitting a service gRPC
-  port directly bypasses the gateway (lab networks only).
+`./main` on port 5555. In compose it is the `lunar-gateway` container,
+exposed on `localhost:5555`.
